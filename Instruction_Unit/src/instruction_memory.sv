@@ -8,6 +8,6 @@ module instruction_memory #(parameter WIDTH = 32, IMM_WIDTH = 16, STORAGE = 256)
 logic [WIDTH-1:0] INSTR_MEM [0:STORAGE-1];
 
 
-assign INSTRUCTION = INSTR_MEM[PC];
+assign INSTRUCTION = INSTR_MEM[PC[2 +: $clog2(STORAGE)]];
 
 endmodule
