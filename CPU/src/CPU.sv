@@ -1,0 +1,144 @@
+module CPU #(parameter WIDTH = 32)(
+
+    input logic clk,reset,
+   
+    
+);
+
+// Internal signals for instructions
+logic [WIDTH-1:0] INSTR;
+logic [WIDTH-1:0] PC_NEXT,PC_OUT,PC_RESULT; //PC_RESULT determines if next instruction is PC+4 or branch address
+
+//internal signals for decoded instruction
+logic [5:0] OPCODE,FUNC;
+logic [4:0] RS,RT,RD;
+logic [15:0] IMMEDIATE;
+logic [25:0] ADDR;
+
+//register file signals
+logic [WIDTH-1:0] RD1,RD2,WD3,EXTENDED_IMMEDIATE;
+
+//MCU signals
+logic RegDst,ALUSrc,MemtoReg,RegWrite,MemRead,Mem; 
+
+//ALU signals
+logic [WIDTH-1:0] ALU_INPUT2,ALU_RESULT;
+
+//Data Memory signals
+logic [WIDTH-1:0] RD_MEM;
+
+//--------------INSTRUCTION UNIT----------------
+pc_register #(.WIDTH(WIDTH)) PC(
+    .clk(clk),
+    .rst(reset),
+    .PC_NEXT(PC_RESULT),
+    .PC_OUT(PC_OUT)
+);
+
+pc_adder #(.WIDTH(WIDTH)) PC_ADDER(
+    .PC(PC_OUT),
+    .PC_NEXT(PC_NEXT)
+);
+
+instruction_memory #(.WIDTH(WIDTH)) INSTRUCTION_MEMORY(
+    .PC_IN(PC_OUT),
+    .INSTRUCTION_OUT(INSTR)
+);
+
+pc_mux #(.WIDTH(WIDTH)) PC_MUX(
+    .PC_PLUS_4(PC_NEXT),
+    .BRANCH_ADDR(),
+    .BRANCH_TAKEN(),
+    .PC_RESULT(PC_RESULT)
+);
+
+//-----------Decoder Unit----------------
+decoder #(.WIDTH(WIDTH)) DECODER(
+    .INSTRUCTION(INSTR),
+    .RS(RS),
+    .RT(RT),
+    .RD(RD),
+    .IMMEDIATE(IMMEDIATE),
+    .OPCODE(OPCODE),
+    .ADDR(ADDR),
+    .FUNC(FUNC)
+);
+
+bit_extender #(.WIDTH(WIDTH)) BIT_EXTENDER(
+    .immediate_var(IMMEDIATE),
+    .extended_var(EXTENDED_IMMEDIATE)
+);
+
+MCU #(.WIDTH(WIDTH)) MCU(
+    .OPCODE(OPCODE),
+    .FUNC(FUNC),
+    .RegDst(RegDst),
+    .ALUSrc(ALUSrc),
+    .MemtoReg(MemtoReg),
+    .RegWrite(RegWrite),
+    .MemRead(MemRead),
+    .MemWrite(MemWrite),
+    .Branch(Branch),
+    .ALUOp()
+);
+
+
+
+
+
+
+//-----------Register File----------------
+register_file #(.WIDTH(WIDTH)) REG_FILE(
+    .clk(clk),
+    .rst(reset),
+    .rst(reset),
+    .WD3(WD3),
+    .A1(RS),
+    .A2(RT),
+    .A3(RD),
+    .RD1(RD1),
+    .RD2(RD2)
+);
+
+//-----------ALU----------------
+
+
+
+alu #(.WIDTH(WIDTH)) ALU(
+    .a(RD1),
+    .b(ALU_INPUT2),
+    .opcode(),
+    .result(ALU_RESULT),
+    .zero(),
+    .sign(),
+    .overflow(),
+    .carry()
+);
+
+alu_mux #(.WIDTH(WIDTH)) ALU_MUX(
+    .RD2(RD2),
+    .EXTENDED_IMMEDIATE(EXTENDED_IMMEDIATE),
+    .ALUSrc(ALUSrc),
+    .ALU_INPUT2(ALU_INPUT2)
+);
+
+
+
+
+//-----------Data Memory----------------
+data_memory #(.WIDTH(WIDTH)) DATA_MEMORY(
+    .clk(clk),
+    .rst(reset),
+    .MemRead(MemRead),
+    .MemWrite(MemWrite),
+    .address(ALU_RESULT),
+    .write_data(RD2),
+    .read_data()
+);
+
+read_data_mux #(.WIDTH(WIDTH)) READ_DATA_MUX(
+    .ALU_RESULT(ALU_RESULT),
+    .MEM_READ_DATA(RD_MEM),
+    .MemtoReg(MemtoReg),
+    .WD3(WD3)
+);

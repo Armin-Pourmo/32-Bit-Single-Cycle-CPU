@@ -1,5 +1,6 @@
 module MCU #(parameter WIDTH = 32)(
     input  logic [5:0] OPCODE,
+    input logic[5:0] FUNC,
 
     output logic       RegDst,
     output logic       ALUSrc,

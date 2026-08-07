@@ -4,6 +4,16 @@ module decoder #(parameter WIDTH = 32)(
     output logic [1:0] result
 );
 
+localparam AND = 4'b0000;
+localparam OR  = 4'b0001;
+localparam XOR = 4'b0010;
+localparam NOR = 4'b0011;
+localparam ADD = 4'b0100;   
+localparam SUB = 4'b0101;
+localparam SLL = 4'b0110;
+localparam SRL = 4'b0111;
+localparam SRA = 4'b1000;
+
 always_comb begin
 
     sub         = 1'b0;
@@ -13,38 +23,38 @@ always_comb begin
 
     case (opcode)
 
-        4'b0000: begin
+        AND: begin
             result = 2'b01; // AND
         end
-        4'b0001: begin
+        OR: begin
             result = 2'b01; // OR
         end
-        4'b0010: begin
+        XOR: begin
             result    = 2'b01; // XOR
         end
-        4'b0011: begin
+        NOR: begin
             result    = 2'b01; // NOR
         end
-        4'b0100: begin
+        ADD: begin
             sub       = 1'b0;
             result    = 2'b00; // ADD
         end
-        4'b0101: begin
+        SUB: begin
             sub       = 1'b1;
             result    = 2'b00; // SUB
         end
-        4'b0110: begin
+        SLL: begin
             direction = 1'b0;
-            result    = 2'b10; // LSL
+            result    = 2'b10; // SLL
         end
-        4'b0111: begin
+        SRL: begin
             direction = 1'b1;
-            result    = 2'b10; // LSR
+            result    = 2'b10; // SRL
         end
-        4'b1000: begin
+        SRA: begin
             direction  = 1'b1;
             arithmetic = 1'b1;
-            result     = 2'b10; // ASR
+            result     = 2'b10; // SRA
         end
 
         default: result = '0;
