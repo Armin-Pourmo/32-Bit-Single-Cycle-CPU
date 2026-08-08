@@ -17,6 +17,7 @@ logic [25:0] ADDR;
 
 //register file signals
 logic [WIDTH-1:0] RD1,RD2,WD3,EXTENDED_IMMEDIATE;
+logic [4:0] WriteReg;
 
 //MCU signals
 logic RegDst,ALUSrc,MemtoReg,RegWrite,MemRead,Mem; 
@@ -41,8 +42,8 @@ pc_adder #(.WIDTH(WIDTH)) PC_ADDER(
 );
 
 instruction_memory #(.WIDTH(WIDTH)) INSTRUCTION_MEMORY(
-    .PC_IN(PC_OUT),
-    .INSTRUCTION_OUT(INSTR)
+    .PC(PC_OUT),
+    .INSTRUCTION(INSTR)
 );
 
 pc_mux #(.WIDTH(WIDTH)) PC_MUX(
@@ -53,7 +54,7 @@ pc_mux #(.WIDTH(WIDTH)) PC_MUX(
 );
 
 //-----------Decoder Unit----------------
-decoder #(.WIDTH(WIDTH)) DECODER(
+decoder_unit #(.WIDTH(WIDTH)) DECODER(
     .INSTRUCTION(INSTR),
     .RS(RS),
     .RT(RT),
@@ -74,7 +75,7 @@ MCU #(.WIDTH(WIDTH)) MCU(
     .FUNC(FUNC),
     .RegDst(RegDst),
     .ALUSrc(ALUSrc),
-    .MemtoReg(MemtoReg),
+    .MemToReg(MemtoReg),
     .RegWrite(RegWrite),
     .MemRead(MemRead),
     .MemWrite(MemWrite),
@@ -95,9 +96,16 @@ register_file #(.WIDTH(WIDTH)) REG_FILE(
     .WD3(WD3),
     .A1(RS),
     .A2(RT),
-    .A3(RD),
+    .A3(WriteReg),
     .RD1(RD1),
     .RD2(RD2)
+);
+
+MCU_mux #(.WIDTH(WIDTH)) MCU_MUX(
+    .RegDst(RegDst),
+    .RT(RT),
+    .RD(RD),
+    .A3(WriteReg)
 );
 
 //-----------ALU----------------
@@ -129,11 +137,10 @@ alu_mux #(.WIDTH(WIDTH)) ALU_MUX(
 data_memory #(.WIDTH(WIDTH)) DATA_MEMORY(
     .clk(clk),
     .rst(reset),
-    .MemRead(MemRead),
-    .MemWrite(MemWrite),
-    .address(ALU_RESULT),
-    .write_data(RD2),
-    .read_data()
+    .A(ALU_RESULT),
+    .WD(RD2),
+    .WE(MemWrite),
+    .RD(RD_MEM)
 );
 
 read_data_mux #(.WIDTH(WIDTH)) READ_DATA_MUX(
