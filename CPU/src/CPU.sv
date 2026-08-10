@@ -7,7 +7,8 @@ module CPU #(parameter WIDTH = 32)(
 
 // Internal signals for instructions
 logic [WIDTH-1:0] INSTR;
-logic [WIDTH-1:0] PC_NEXT,PC_OUT,PC_JUMP; //PC_RESULT determines if next instruction is PC+4 or branch address
+logic [WIDTH-1:0] PC_NEXT,PC_OUT,PC_JUMP; 
+//PC_NEXT is the next sequential instruction address (PC+4), PC_OUT is the current instruction address, and PC_JUMP is the branch address calculated by the ALU.
 
 //internal signals for decoded instruction
 logic [5:0] OPCODE,FUNC;
@@ -36,9 +37,10 @@ logic zero,sign,overflow,carry;
 pc_register #(.WIDTH(WIDTH)) PC(
     .clk(clk),
     .rst(reset),
-    .PCSrc(BRANCH_TAKEN),
-    .PC_JUMP(PC_JUMP),
+    .Branch(Branch),
+    .Zero(zero),
     .PC_NEXT(PC_NEXT),
+    .PC_JUMP(PC_JUMP),
     .PC_OUT(PC_OUT)
 );
 
@@ -52,18 +54,15 @@ instruction_memory #(.WIDTH(WIDTH)) INSTRUCTION_MEMORY(
     .INSTRUCTION(INSTR)
 );
 
-pc_mux #(.WIDTH(WIDTH)) PC_MUX(
-    .PC_PLUS_4(PC_NEXT),
-    .BRANCH_ADDR(),
-    .BRANCH_TAKEN(),
-    .PC_RESULT(PC_RESULT)
+PCBranch #(.WIDTH(WIDTH)) PC_BRANCH(
+    .EXTENDED_IMMEDIATE(EXTENDED_IMMEDIATE),
+    .PCPlus4(PC_NEXT),
+    .PC_JUMP(PC_JUMP)
 );
 
-PCSrc PC_SRC(
-    .Branch(Branch),
-    .zero(zero),
-    .PCSrc(BRANCH_TAKEN)
-);
+
+
+
 
 //-----------Decoder Unit----------------
 decoder_unit #(.WIDTH(WIDTH)) DECODER(
