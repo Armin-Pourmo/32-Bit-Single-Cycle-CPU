@@ -20,13 +20,17 @@ logic [WIDTH-1:0] RD1,RD2,WD3,EXTENDED_IMMEDIATE;
 logic [4:0] WriteReg;
 
 //MCU signals
-logic RegDst,ALUSrc,MemtoReg,RegWrite,MemRead,Mem; 
+logic MemtoReg,MemWrite,Branch,ALUSrc,RegDst,RegWrite;
+logic [1:0] ALUOp; 
 
 //ALU signals
 logic [WIDTH-1:0] ALU_INPUT2,ALU_RESULT;
 
 //Data Memory signals
 logic [WIDTH-1:0] RD_MEM;
+
+//----------------- ALU Flags ------------------
+logic zero,sign,overflow,carry;
 
 //--------------INSTRUCTION UNIT----------------
 pc_register #(.WIDTH(WIDTH)) PC(
@@ -72,16 +76,14 @@ bit_extender #(.WIDTH(WIDTH)) BIT_EXTENDER(
 
 MCU #(.WIDTH(WIDTH)) MCU(
     .OPCODE(OPCODE),
-    .FUNC(FUNC),
-    .RegDst(RegDst),
-    .ALUSrc(ALUSrc),
-    .MemToReg(MemtoReg),
-    .RegWrite(RegWrite),
-    .MemRead(MemRead),
+
+    .MemtoReg(MemtoReg),
     .MemWrite(MemWrite),
     .Branch(Branch),
-    .ALUOp()
-);
+    .ALUOp(ALUOp),
+    .ALUSrc(ALUSrc),
+    .RegDst(RegDst),
+    .RegWrite(RegWrite))
 
 
 
@@ -97,6 +99,7 @@ register_file #(.WIDTH(WIDTH)) REG_FILE(
     .A1(RS),
     .A2(RT),
     .A3(WriteReg),
+
     .RD1(RD1),
     .RD2(RD2)
 );
@@ -117,10 +120,10 @@ alu #(.WIDTH(WIDTH)) ALU(
     .b(ALU_INPUT2),
     .opcode(),
     .result(ALU_RESULT),
-    .zero(),
-    .sign(),
-    .overflow(),
-    .carry()
+    .zero(zero),
+    .sign(sign),
+    .overflow(overflow),
+    .carry(carry)
 );
 
 alu_mux #(.WIDTH(WIDTH)) ALU_MUX(
