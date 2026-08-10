@@ -23,6 +23,7 @@ logic [4:0] WriteReg;
 //MCU signals
 logic MemtoReg,MemWrite,Branch,ALUSrc,RegDst,RegWrite;
 logic [1:0] ALUOp; 
+logic [3:0] ALUControl;
 
 //ALU signals
 logic [WIDTH-1:0] ALU_INPUT2,ALU_RESULT;
@@ -90,7 +91,14 @@ MCU #(.WIDTH(WIDTH)) MCU(
     .ALUOp(ALUOp),
     .ALUSrc(ALUSrc),
     .RegDst(RegDst),
-    .RegWrite(RegWrite))
+    .RegWrite(RegWrite)
+);
+
+ALUDecoder #(.WIDTH(WIDTH)) ALU_DECODER(
+    .ALUOp(ALUOp),
+    .FUNC(FUNC),
+    .ALUControl(ALUControl)
+);
 
 
 
@@ -125,7 +133,7 @@ MCU_mux #(.WIDTH(WIDTH)) MCU_MUX(
 alu #(.WIDTH(WIDTH)) ALU(
     .a(RD1),
     .b(ALU_INPUT2),
-    .opcode(),
+    .opcode(ALUControl),
     .result(ALU_RESULT),
     .zero(zero),
     .sign(sign),
