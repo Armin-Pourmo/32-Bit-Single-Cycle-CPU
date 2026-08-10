@@ -7,7 +7,7 @@ module CPU #(parameter WIDTH = 32)(
 
 // Internal signals for instructions
 logic [WIDTH-1:0] INSTR;
-logic [WIDTH-1:0] PC_NEXT,PC_OUT,PC_RESULT; //PC_RESULT determines if next instruction is PC+4 or branch address
+logic [WIDTH-1:0] PC_NEXT,PC_OUT,PC_JUMP; //PC_RESULT determines if next instruction is PC+4 or branch address
 
 //internal signals for decoded instruction
 logic [5:0] OPCODE,FUNC;
@@ -36,7 +36,9 @@ logic zero,sign,overflow,carry;
 pc_register #(.WIDTH(WIDTH)) PC(
     .clk(clk),
     .rst(reset),
-    .PC_NEXT(PC_RESULT),
+    .PCSrc(BRANCH_TAKEN),
+    .PC_JUMP(PC_JUMP),
+    .PC_NEXT(PC_NEXT),
     .PC_OUT(PC_OUT)
 );
 
@@ -55,6 +57,12 @@ pc_mux #(.WIDTH(WIDTH)) PC_MUX(
     .BRANCH_ADDR(),
     .BRANCH_TAKEN(),
     .PC_RESULT(PC_RESULT)
+);
+
+PCSrc PC_SRC(
+    .Branch(Branch),
+    .zero(zero),
+    .PCSrc(BRANCH_TAKEN)
 );
 
 //-----------Decoder Unit----------------
