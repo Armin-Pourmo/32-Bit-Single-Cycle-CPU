@@ -5,7 +5,7 @@ module decoder_unit #(parameter WIDTH = 32, RTYPE = 5, SHAMT = 5, FUNCT = 6, IMM
     output logic [FUNCT-1:0] FUNC,
     output logic [IMM-1:0]IMMEDIATE,
     output logic [5:0] OPCODE,
-    output logic[25:0]ADDR
+    output logic[25:0]JUMP_ADDR
 );
 
 
@@ -16,37 +16,22 @@ always @(*) begin
 
     OPCODE = INSTRUCTION[31:26];
 
-    {RS, RT, RD} = '0;
-    SHIFT_AMNT = '0;
-    FUNC = '0;
-    IMMEDIATE = '0;
-    ADDR = '0;
-
-
-
-
 
     //r-type
-    if(OPCODE == 6'd0) begin
+    RS = INSTRUCTION[25:21];          
+    RT = INSTRUCTION[20:16];
+    RD = INSTRUCTION[15:11];
+    SHIFT_AMNT = INSTRUCTION[10:6];
+    FUNC = INSTRUCTION[5:0];
 
-        RS = INSTRUCTION[25:21];          
-        RT = INSTRUCTION[20:16];
-        RD = INSTRUCTION[15:11];
-        SHIFT_AMNT = INSTRUCTION[10:6];
-        FUNC = INSTRUCTION[5:0];
-    end
-    //j-type
-    else if ((OPCODE[1:0]!=2'b00) && (OPCODE[5:2] == 4'b0000)) begin
-        ADDR = INSTRUCTION[25:0];
-        
-
-    end
 
     //i-type
-    else begin
-        RS = INSTRUCTION[25:21];         
-        RT = INSTRUCTION[20:16];
-        IMMEDIATE = INSTRUCTION[15:0];
+    IMMEDIATE = INSTRUCTION[15:0];
+
+    //j-type
+    JUMP_ADDR = INSTRUCTION[25:0];
+
+
         
     end
 end

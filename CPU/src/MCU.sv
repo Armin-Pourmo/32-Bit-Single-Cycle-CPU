@@ -18,6 +18,7 @@ module MCU #(parameter WIDTH = 32)(
     localparam OP_SW    = 6'b101011;
     localparam OP_BEQ   = 6'b000100;
     localparam OP_ADDI  = 6'b001000;
+    localparam OP_JUMP  = 6'b000010;
     
     // Defaults — safe/inactive for every control signal
 always_comb begin
@@ -28,7 +29,7 @@ always_comb begin
     ALUSrc   = 1'b0;
     RegDst   = 1'b0;
     RegWrite = 1'b0;
-    jump     = 1'b0;
+    Jump     = 1'b0;
 
     case (OPCODE)
 
@@ -60,7 +61,10 @@ always_comb begin
             ALUSrc   = 1'b1;
             RegWrite = 1'b1;
             ALUOp    = 2'b00; // look at FUNC
-            Jump     = 1'b0;
+        end
+
+        OP_JUMP: begin
+            Jump = 1'b1;
         end
 
     endcase
