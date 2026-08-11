@@ -22,6 +22,10 @@ always @(*) begin
     IMMEDIATE = '0;
     ADDR = '0;
 
+
+
+
+
     //r-type
     if(OPCODE == 6'd0) begin
 
