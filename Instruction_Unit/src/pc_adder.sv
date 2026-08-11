@@ -3,6 +3,6 @@ module pc_adder #(parameter WIDTH = 32)(
     output logic [WIDTH-1:0] PC_NEXT
 );
 
-assign PC_next = PC + 32'd4;
+assign PC_NEXT = PC + 32'd4;
 
 endmodule

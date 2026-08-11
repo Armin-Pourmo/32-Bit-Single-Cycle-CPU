@@ -1,6 +1,7 @@
 module data_memory #(parameter WIDTH = 32, N = 65536)(
     input logic WE,clk,rst,
-    input logic [WIDTH-1:0] A,WD, //address
+    input logic [WIDTH-1:0] WD,
+    input logic [15:0] A, //address
     output logic [WIDTH-1:0]RD
 );
 

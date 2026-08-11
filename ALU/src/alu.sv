@@ -2,6 +2,8 @@ module alu #(parameter WIDTH = 32)(
 
     input logic [WIDTH-1:0]     a,b,
     input logic [3:0]           opcode,
+    input logic [4:0]           shamt,
+    input logic [WIDTH-1:0]     shval,
     output logic [WIDTH-1:0]    result,
 
     output logic                zero,sign,overflow,carry
@@ -42,8 +44,8 @@ shift_unit #(.WIDTH(WIDTH)) ALU_SHIFT(
     .direction(direction),
     .arithmetic(arithmetic),
 
-    .data(a),
-    .shamt(b[4:0]),
+    .data(shval),
+    .shamt(shamt),
     .result(result_shift)
 
 );

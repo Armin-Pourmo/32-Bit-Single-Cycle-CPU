@@ -18,7 +18,7 @@ module MCU #(parameter WIDTH = 32)(
     localparam OP_BEQ   = 6'b000100;
     
     // Defaults — safe/inactive for every control signal
-    
+always_comb begin
     MemtoReg = 1'b0;
     MemWrite = 1'b0;
     Branch   = 1'b0;

@@ -1,9 +1,25 @@
 module CPU #(parameter WIDTH = 32)(
 
     input logic clk,reset,
-   
-    
+    output logic [WIDTH-1:0] TEST_PC_OUT,TEST_INSTR,TEST_ALU_RESULT,TEST_RD_MEM //Outputs for testing purposes
 );
+
+always_comb begin : blockName
+
+    if(reset) begin
+        TEST_PC_OUT = '0;
+        TEST_INSTR = '0;
+        TEST_ALU_RESULT = '0;
+        TEST_RD_MEM = '0;
+    end
+    else begin
+        TEST_PC_OUT = PC_OUT;
+        TEST_INSTR = INSTR;
+        TEST_ALU_RESULT = ALU_RESULT;
+        TEST_RD_MEM = RD_MEM;
+    end
+end
+
 
 // Internal signals for instructions
 logic [WIDTH-1:0] INSTR;
@@ -27,6 +43,7 @@ logic [3:0] ALUControl;
 
 //ALU signals
 logic [WIDTH-1:0] ALU_INPUT2,ALU_RESULT;
+logic [4:0] SHAMT; //shamt signal for ALU
 
 //Data Memory signals
 logic [WIDTH-1:0] RD_MEM;
@@ -74,7 +91,8 @@ decoder_unit #(.WIDTH(WIDTH)) DECODER(
     .IMMEDIATE(IMMEDIATE),
     .OPCODE(OPCODE),
     .ADDR(ADDR),
-    .FUNC(FUNC)
+    .FUNC(FUNC),
+    .SHIFT_AMNT(SHAMT)
 );
 
 bit_extender #(.WIDTH(WIDTH)) BIT_EXTENDER(
@@ -109,11 +127,11 @@ ALUDecoder #(.WIDTH(WIDTH)) ALU_DECODER(
 register_file #(.WIDTH(WIDTH)) REG_FILE(
     .clk(clk),
     .rst(reset),
-    .rst(reset),
     .WD3(WD3),
     .A1(RS),
     .A2(RT),
     .A3(WriteReg),
+    .enable(RegWrite),
 
     .RD1(RD1),
     .RD2(RD2)
@@ -133,12 +151,14 @@ MCU_mux #(.WIDTH(WIDTH)) MCU_MUX(
 alu #(.WIDTH(WIDTH)) ALU(
     .a(RD1),
     .b(ALU_INPUT2),
+    .shval(RD2),
     .opcode(ALUControl),
     .result(ALU_RESULT),
     .zero(zero),
     .sign(sign),
     .overflow(overflow),
-    .carry(carry)
+    .carry(carry),
+    .shamt(SHAMT)
 );
 
 alu_mux #(.WIDTH(WIDTH)) ALU_MUX(
@@ -167,3 +187,5 @@ read_data_mux #(.WIDTH(WIDTH)) READ_DATA_MUX(
     .MemtoReg(MemtoReg),
     .WD3(WD3)
 );
+
+endmodule

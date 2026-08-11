@@ -1,5 +1,5 @@
 module pc_register #(parameter WIDTH = 32)(
-    input logic clk,rst,Branch,Zero
+    input logic clk,rst,Branch,Zero,
     input logic [WIDTH-1:0] PC_NEXT,PC_JUMP,
     output logic [WIDTH-1:0] PC_OUT
 );

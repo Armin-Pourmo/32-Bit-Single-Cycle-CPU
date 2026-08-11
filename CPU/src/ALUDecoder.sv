@@ -31,8 +31,8 @@ localparam SRA = 4'b1000;
 
 always_comb begin
     case(ALUOp)
-        2'b00: ALUControl = 4'b0010; // ADD
-        2'b01: ALUControl = 4'b0110; // SUB
+        2'b00: ALUControl = ADD; // ADD
+        2'b01: ALUControl = SUB; // SUB
         2'b10: begin
             case(FUNC)
                 FUNC_SLL: ALUControl = SLL;
@@ -50,3 +50,5 @@ always_comb begin
         default: ALUControl = 4'bxxxx; // Undefined
     endcase
 end
+
+endmodule
