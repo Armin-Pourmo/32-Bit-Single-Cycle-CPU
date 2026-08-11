@@ -18,3 +18,4 @@ CPU/src/MCU_mux.sv
 CPU/src/MCU.sv
 CPU/src/ALUDecoder.sv
 CPU/src/CPU.sv
+CPU/tb/CPU_tb.sv

@@ -1,0 +1,8 @@
+# Compiled simulation binaries
+build/
+**/sim/
+*.vvp
+*.out
+
+# Waveform dumps
+*.vcd

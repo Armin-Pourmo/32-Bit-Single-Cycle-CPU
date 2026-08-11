@@ -1,0 +1,14 @@
+// addr 0x00: nor  $8,  $0, $0        $8  = ~($0|$0)  = 0xFFFFFFFF
+00004027
+// addr 0x04: sw   $8,  0($0)         mem[0] = $8
+ac080000
+// addr 0x08: lw   $9,  0($0)         $9  = mem[0]
+8c090000
+// addr 0x0C: and  $10, $8, $9        $10 = $8 & $9
+01095024
+// addr 0x10: beq  $8,  $9, 1         $8==$9 -> branch to 0x18, skip 0x14
+11090001
+// addr 0x14: nor  $11, $0, $0        SKIPPED — $11 stays 0 if beq works
+00005827
+// addr 0x18: or   $12, $8, $0        LABEL: $12 = $8 | $0
+01006025
