@@ -23,7 +23,7 @@ end
 
 // Internal signals for instructions
 logic [WIDTH-1:0] INSTR;
-logic [WIDTH-1:0] PC_NEXT,PC_OUT,PC_JUMP,PC_FINAL; 
+logic [WIDTH-1:0] PC_BRANCH, PC_PLUS, PC_JUMP, PC_OUT; 
 //PC_NEXT is the next sequential instruction address (PC+4), PC_OUT is the current instruction address, and PC_JUMP is the branch address calculated by the ALU.
 
 //internal signals for decoded instruction
@@ -52,42 +52,41 @@ logic [WIDTH-1:0] RD_MEM;
 logic zero,sign,overflow,carry;
 
 //--------------INSTRUCTION UNIT----------------
-pc_register #(.WIDTH(WIDTH)) PC(
+PC_unit #(.WIDTH(WIDTH)) PC_UNIT(
     .clk(clk),
     .rst(reset),
     .Branch(Branch),
     .Zero(zero),
-    .PC_NEXT(PC_NEXT),
+    .Jump(Jump),
+    .PC_BRANCH(PC_BRANCH),
+    .PC_PLUS(PC_PLUS),
     .PC_JUMP(PC_JUMP),
+
     .PC_OUT(PC_OUT)
 );
 
-pc_adder #(.WIDTH(WIDTH)) PC_ADDER(
-    .PC(PC_FINAL),
-    .PC_NEXT(PC_NEXT)
+PC_plus #(.WIDTH(WIDTH)) PC_PLUS_UNIT(
+    .PC(PC_OUT),
+    .PC_PLUS(PC_PLUS)
 );
 
-instruction_memory #(.WIDTH(WIDTH)) INSTRUCTION_MEMORY(
-    .PC(PC_FINAL),
-    .INSTRUCTION(INSTR)
-);
-
-PCBranch #(.WIDTH(WIDTH)) PC_BRANCH(
-    .EXTENDED_IMMEDIATE(EXTENDED_IMMEDIATE),
-    .PCPlus4(PC_NEXT),
+PC_jump #(.WIDTH(WIDTH)) PC_JUMP_UNIT(
+    .JUMP_ADDR(JUMP_ADDR),
+    .PC_PLUS(PC_PLUS),
     .PC_JUMP(PC_JUMP)
 );
 
-jump_unit  JUMP_UNIT(
-    .Jump(Jump),
-    .PC_OUT(PC_OUT),
-    .JUMP_ADDR(JUMP_ADDR),
-    .PC_PLUS_4(PC_NEXT),
-    .PC_FINAL(PC_FINAL)
+PC_branch #(.WIDTH(WIDTH)) PC_BRANCH_UNIT(
+    .EXTENDED_IMMEDIATE(EXTENDED_IMMEDIATE),
+    .PC_PLUS(PC_PLUS),
+    .PC_BRANCH(PC_BRANCH)
 );
 
 
-
+instruction_memory #(.WIDTH(WIDTH)) INSTRUCTION_MEMORY(
+    .PC(PC_OUT),
+    .INSTRUCTION(INSTR)
+);
 
 
 //-----------Decoder Unit----------------
@@ -98,7 +97,6 @@ decoder_unit #(.WIDTH(WIDTH)) DECODER(
     .RD(RD),
     .IMMEDIATE(IMMEDIATE),
     .OPCODE(OPCODE),
-    .ADDR(ADDR),
     .FUNC(FUNC),
     .SHIFT_AMNT(SHAMT),
     .JUMP_ADDR(JUMP_ADDR)

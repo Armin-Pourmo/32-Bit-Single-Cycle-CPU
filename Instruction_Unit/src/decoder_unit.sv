@@ -31,9 +31,6 @@ always @(*) begin
     //j-type
     JUMP_ADDR = INSTRUCTION[25:0];
 
-
-        
-    end
 end
 
 endmodule

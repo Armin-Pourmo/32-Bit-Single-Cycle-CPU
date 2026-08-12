@@ -6,9 +6,10 @@ ALU/src/alu_mux.sv
 ALU/src/decoder.sv
 ALU/src/alu.sv
 Instruction_Unit/src/decoder_unit.sv
-Instruction_Unit/src/PCBranch.sv
-Instruction_Unit/src/pc_adder.sv
-Instruction_Unit/src/pc_register.sv
+Instruction_Unit/src/PC_branch.sv
+Instruction_Unit/src/PC_jump.sv
+Instruction_Unit/src/PC_plus.sv
+Instruction_Unit/src/PC_unit.sv
 Instruction_Unit/src/instruction_memory.sv
 Memory/src/bit_extender.sv
 Memory/src/read_data_mux.sv
