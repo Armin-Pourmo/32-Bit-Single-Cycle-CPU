@@ -28,8 +28,8 @@ add_subtract_unit #(.WIDTH(WIDTH)) ALU_ADD(
     .sum(result_add),
     .sub(sub),
     .cout(carry),
-    .zero_flag(zero),
-    .sign_flag(sign),
+    .zero_flag(),
+    .sign_flag(),
     .overflow_flag(overflow)
 );
 
@@ -59,5 +59,8 @@ always_comb begin: final_mux
         default: result = result_add;
     endcase
 end
+
+assign zero = ~|result;
+assign sign = result[WIDTH-1];
 
 endmodule
