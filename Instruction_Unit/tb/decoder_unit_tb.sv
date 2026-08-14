@@ -8,7 +8,7 @@ logic [4:0]  SHIFT_AMNT;
 logic [5:0]  FUNC;
 logic [15:0] IMMEDIATE;
 logic [5:0]  OPCODE;
-logic [25:0] ADDR;
+logic [25:0] JUMP_ADDR;
 
 // ── DUT instantiation ────────────────────────────────────────────────────────
 decoder_unit #(.WIDTH(WIDTH)) dut (
@@ -18,7 +18,7 @@ decoder_unit #(.WIDTH(WIDTH)) dut (
     .FUNC(FUNC),
     .IMMEDIATE(IMMEDIATE),
     .OPCODE(OPCODE),
-    .ADDR(ADDR)
+    .JUMP_ADDR(JUMP_ADDR)
 );
 
 int pass_count = 0;
@@ -60,18 +60,18 @@ task check(
     fail_count += (SHIFT_AMNT !== exp_shamt);
     fail_count += (FUNC       !== exp_func);
     fail_count += (IMMEDIATE  !== exp_imm);
-    fail_count += (ADDR       !== exp_addr);
+    fail_count += (JUMP_ADDR  !== exp_addr);
 
     if (OPCODE === exp_opcode && RS === exp_rs && RT === exp_rt && RD === exp_rd &&
         SHIFT_AMNT === exp_shamt && FUNC === exp_func &&
-        IMMEDIATE === exp_imm && ADDR === exp_addr) begin
+        IMMEDIATE === exp_imm && JUMP_ADDR === exp_addr) begin
         $display("PASS [%s] opcode=%06b rs=%0d rt=%0d rd=%0d shamt=%0d func=%06b imm=%h addr=%h",
-                  label, OPCODE, RS, RT, RD, SHIFT_AMNT, FUNC, IMMEDIATE, ADDR);
+                  label, OPCODE, RS, RT, RD, SHIFT_AMNT, FUNC, IMMEDIATE, JUMP_ADDR);
         pass_count++;
     end else begin
         $error("FAIL [%s] opcode=%06b(exp %06b) rs=%0d(exp %0d) rt=%0d(exp %0d) rd=%0d(exp %0d) shamt=%0d(exp %0d) func=%06b(exp %06b) imm=%h(exp %h) addr=%h(exp %h)",
                   label, OPCODE, exp_opcode, RS, exp_rs, RT, exp_rt, RD, exp_rd,
-                  SHIFT_AMNT, exp_shamt, FUNC, exp_func, IMMEDIATE, exp_imm, ADDR, exp_addr);
+                  SHIFT_AMNT, exp_shamt, FUNC, exp_func, IMMEDIATE, exp_imm, JUMP_ADDR, exp_addr);
     end
 endtask
 
@@ -79,48 +79,60 @@ initial begin
     //$dumpfile("Instruction_Unit/dump/decoder_unit.vcd");
     //$dumpvars(0, decoder_unit_tb);
 
+    // decoder_unit is a pure fixed-position field splitter: it does NOT look
+    // at OPCODE to decide which fields are meaningful. Every field
+    // (RS/RT/RD/SHIFT_AMNT/FUNC/IMMEDIATE/JUMP_ADDR) is always sliced from
+    // its fixed bit range, for every instruction, regardless of type — it's
+    // up to downstream control logic (MCU/ALUDecoder/muxes) to ignore the
+    // fields that don't apply to a given opcode. So even for I-type and
+    // J-type encodings, RD/SHIFT_AMNT/FUNC/IMMEDIATE/JUMP_ADDR below are NOT
+    // zero — they're whatever bits happen to fall in those positions.
+
     // =========================================================================
     // 1. R-type (opcode 000000)
     // =========================================================================
     // add $8, $9, $10  -> rs=9, rt=10, rd=8, shamt=0, funct=0x20
     INSTRUCTION = make_r(6'b000000, 5'd9, 5'd10, 5'd8, 5'd0, 6'h20);
-    check(5'd9, 5'd10, 5'd8, 5'd0, 6'h20, 16'h0, 6'b000000, 26'h0, "R-type add");
+    check(5'd9, 5'd10, 5'd8, 5'd0, 6'h20, 16'h4020, 6'b000000, 26'h12a4020, "R-type add");
 
     // sll $1, $2, 4 -> rs=0, rt=2, rd=1, shamt=4, funct=0x00
     INSTRUCTION = make_r(6'b000000, 5'd0, 5'd2, 5'd1, 5'd4, 6'h00);
-    check(5'd0, 5'd2, 5'd1, 5'd4, 6'h00, 16'h0, 6'b000000, 26'h0, "R-type sll");
+    check(5'd0, 5'd2, 5'd1, 5'd4, 6'h00, 16'h0900, 6'b000000, 26'h0020900, "R-type sll");
 
     // random R-type fields
     INSTRUCTION = make_r(6'b000000, 5'd17, 5'd23, 5'd31, 5'd15, 6'h22); // sub
-    check(5'd17, 5'd23, 5'd31, 5'd15, 6'h22, 16'h0, 6'b000000, 26'h0, "R-type sub random regs");
+    check(5'd17, 5'd23, 5'd31, 5'd15, 6'h22, 16'hfbe2, 6'b000000, 26'h237fbe2, "R-type sub random regs");
 
     // =========================================================================
     // 2. I-type (any opcode other than 000000 / 000010 / 000011)
     // =========================================================================
-    // lw $8, 100($9) -> opcode=0x23, rs=9, rt=8, imm=100
+    // lw $8, 100($9) -> opcode=0x23, rs=9, rt=8, imm=100 (0x0064)
+    // IMMEDIATE's own bits alias into RD/SHIFT_AMNT/FUNC: 0x0064 = rd=0, shamt=1, func=0x24
     INSTRUCTION = make_i(6'h23, 5'd9, 5'd8, 16'd100);
-    check(5'd9, 5'd8, 5'd0, 5'd0, 6'h0, 16'd100, 6'h23, 26'h0, "I-type lw");
+    check(5'd9, 5'd8, 5'd0, 5'd1, 6'h24, 16'd100, 6'h23, 26'h1280064, "I-type lw");
 
-    // sw $10, -4($sp=29) -> opcode=0x2B, rs=29, rt=10, imm=0xFFFC
+    // sw $10, -4($sp=29) -> opcode=0x2B, rs=29, rt=10, imm=0xFFFC -> rd=31, shamt=31, func=0x3C
     INSTRUCTION = make_i(6'h2B, 5'd29, 5'd10, 16'hFFFC);
-    check(5'd29, 5'd10, 5'd0, 5'd0, 6'h0, 16'hFFFC, 6'h2B, 26'h0, "I-type sw negative imm");
+    check(5'd29, 5'd10, 5'd31, 5'd31, 6'h3C, 16'hFFFC, 6'h2B, 26'h3aafffc, "I-type sw negative imm");
 
-    // addi $1, $2, 42 -> opcode=0x08
+    // addi $1, $2, 42 -> opcode=0x08, imm=0x002A -> rd=0, shamt=0, func=0x2A
     INSTRUCTION = make_i(6'h08, 5'd2, 5'd1, 16'd42);
-    check(5'd2, 5'd1, 5'd0, 5'd0, 6'h0, 16'd42, 6'h08, 26'h0, "I-type addi");
+    check(5'd2, 5'd1, 5'd0, 5'd0, 6'h2A, 16'd42, 6'h08, 26'h041002a, "I-type addi");
 
-    // beq $3, $4, offset -> opcode=0x04
+    // beq $3, $4, offset -> opcode=0x04, imm=0xABCD -> rd=21, shamt=15, func=0x0D
     INSTRUCTION = make_i(6'h04, 5'd3, 5'd4, 16'hABCD);
-    check(5'd3, 5'd4, 5'd0, 5'd0, 6'h0, 16'hABCD, 6'h04, 26'h0, "I-type beq");
+    check(5'd3, 5'd4, 5'd21, 5'd15, 6'h0D, 16'hABCD, 6'h04, 26'h064abcd, "I-type beq");
 
     // =========================================================================
     // 3. J-type (opcode 000010 = j, 000011 = jal)
     // =========================================================================
+    // addr=0x64 -> its low bits alias into rs/rt/rd/shamt/func/imm the same way
     INSTRUCTION = make_j(6'b000010, 26'h0000064);
-    check(5'd0, 5'd0, 5'd0, 5'd0, 6'h0, 16'h0, 6'b000010, 26'h0000064, "J-type j");
+    check(5'd0, 5'd0, 5'd0, 5'd1, 6'h24, 16'h0064, 6'b000010, 26'h0000064, "J-type j");
 
+    // addr is all ones -> every aliased field is also all ones
     INSTRUCTION = make_j(6'b000011, 26'h3FFFFFF);
-    check(5'd0, 5'd0, 5'd0, 5'd0, 6'h0, 16'h0, 6'b000011, 26'h3FFFFFF, "J-type jal max addr");
+    check(5'd31, 5'd31, 5'd31, 5'd31, 6'h3F, 16'hFFFF, 6'b000011, 26'h3FFFFFF, "J-type jal max addr");
 
     // =========================================================================
     // Summary

@@ -4,6 +4,8 @@ localparam WIDTH = 32;
 // ── Signals ──────────────────────────────────────────────────────────────────
 logic [WIDTH-1:0] a, b, result;
 logic [3:0]       opcode;
+logic [4:0]       shamt;
+logic [WIDTH-1:0] shval;
 logic             zero, sign, overflow, carry;
 
 // ── DUT instantiation ────────────────────────────────────────────────────────
@@ -11,6 +13,8 @@ alu #(.WIDTH(WIDTH)) dut (
     .a(a),
     .b(b),
     .opcode(opcode),
+    .shamt(shamt),
+    .shval(shval),
     .result(result),
     .zero(zero),
     .sign(sign),
@@ -41,10 +45,10 @@ task check_result(
     input string            label
 );
     if (result === expected) begin
-        $display("PASS [%s] op=%04b a=%h b=%h | result=%h", label, opcode, a, b, result);
+        $display("PASS [%s] op=%04b a=%h b=%h shamt=%0d shval=%h | result=%h", label, opcode, a, b, shamt, shval, result);
         pass_count++;
     end else begin
-        $error("FAIL [%s] op=%04b a=%h b=%h | expected=%h got=%h", label, opcode, a, b, expected, result);
+        $error("FAIL [%s] op=%04b a=%h b=%h shamt=%0d shval=%h | expected=%h got=%h", label, opcode, a, b, shamt, shval, expected, result);
         fail_count++;
     end
 endtask
@@ -237,17 +241,19 @@ initial begin
     // =========================================================================
     // 7. LSL – Logical Shift Left (opcode 0110)
     // =========================================================================
-    // b[4:0] is the shift amount (shamt). b upper bits are ignored by the ALU.
+    // Shifts have dedicated ports: shval is the value shifted, shamt[4:0] is
+    // the shift amount. a/b are unused by the shift path, so hold them at 0.
     opcode = OP_LSL;
+    a = 32'h0; b = 32'h0;
 
-    a = 32'h00000001; b = 32'd0;  #10; check_result(32'h00000001, "LSL by 0 (no-op)");
-    a = 32'h00000001; b = 32'd1;  #10; check_result(32'h00000002, "LSL by 1");
-    a = 32'h00000001; b = 32'd4;  #10; check_result(32'h00000010, "LSL by 4");
-    a = 32'h00000001; b = 32'd31; #10; check_result(32'h80000000, "LSL by 31");
+    shval = 32'h00000001; shamt = 5'd0;  #10; check_result(32'h00000001, "LSL by 0 (no-op)");
+    shval = 32'h00000001; shamt = 5'd1;  #10; check_result(32'h00000002, "LSL by 1");
+    shval = 32'h00000001; shamt = 5'd4;  #10; check_result(32'h00000010, "LSL by 4");
+    shval = 32'h00000001; shamt = 5'd31; #10; check_result(32'h80000000, "LSL by 31");
     // Shifting out all bits
-    a = 32'hFFFFFFFF; b = 32'd31; #10; check_result(32'h80000000, "LSL all-ones by 31");
+    shval = 32'hFFFFFFFF; shamt = 5'd31; #10; check_result(32'h80000000, "LSL all-ones by 31");
     // MSBs are dropped, zeros fill from right
-    a = 32'hFFFFFFFF; b = 32'd4;  #10; check_result(32'hFFFFFFF0, "LSL drops MSBs");
+    shval = 32'hFFFFFFFF; shamt = 5'd4;  #10; check_result(32'hFFFFFFF0, "LSL drops MSBs");
 
     // =========================================================================
     // 8. LSR – Logical Shift Right (opcode 0111)
@@ -255,11 +261,11 @@ initial begin
     // Zeros fill from the left regardless of the sign bit.
     opcode = OP_LSR;
 
-    a = 32'h80000000; b = 32'd1;  #10; check_result(32'h40000000, "LSR MSB fills 0");
-    a = 32'h80000000; b = 32'd31; #10; check_result(32'h00000001, "LSR by 31");
-    a = 32'hFFFFFFFF; b = 32'd4;  #10; check_result(32'h0FFFFFFF, "LSR by 4");
-    a = 32'h00000001; b = 32'd1;  #10; check_result(32'h00000000, "LSR drops LSB");
-    a = 32'h00000001; b = 32'd0;  #10; check_result(32'h00000001, "LSR by 0 (no-op)");
+    shval = 32'h80000000; shamt = 5'd1;  #10; check_result(32'h40000000, "LSR MSB fills 0");
+    shval = 32'h80000000; shamt = 5'd31; #10; check_result(32'h00000001, "LSR by 31");
+    shval = 32'hFFFFFFFF; shamt = 5'd4;  #10; check_result(32'h0FFFFFFF, "LSR by 4");
+    shval = 32'h00000001; shamt = 5'd1;  #10; check_result(32'h00000000, "LSR drops LSB");
+    shval = 32'h00000001; shamt = 5'd0;  #10; check_result(32'h00000001, "LSR by 0 (no-op)");
 
     // =========================================================================
     // 9. ASR – Arithmetic Shift Right (opcode 1000)
@@ -269,17 +275,17 @@ initial begin
     opcode = OP_ASR;
 
     // Negative input → fills 1s
-    a = 32'h80000000; b = 32'd1;  #10; check_result(32'hC0000000, "ASR neg by 1");
-    a = 32'h80000000; b = 32'd4;  #10; check_result(32'hF8000000, "ASR neg by 4");
-    a = 32'h80000000; b = 32'd31; #10; check_result(32'hFFFFFFFF, "ASR neg by 31");
-    a = 32'hFFFF0000; b = 32'd8;  #10; check_result(32'hFFFFFF00, "ASR neg fills 1s");
+    shval = 32'h80000000; shamt = 5'd1;  #10; check_result(32'hC0000000, "ASR neg by 1");
+    shval = 32'h80000000; shamt = 5'd4;  #10; check_result(32'hF8000000, "ASR neg by 4");
+    shval = 32'h80000000; shamt = 5'd31; #10; check_result(32'hFFFFFFFF, "ASR neg by 31");
+    shval = 32'hFFFF0000; shamt = 5'd8;  #10; check_result(32'hFFFFFF00, "ASR neg fills 1s");
 
     // Positive input → fills 0s (same as LSR)
-    a = 32'h40000000; b = 32'd1;  #10; check_result(32'h20000000, "ASR pos by 1");
-    a = 32'h7FFFFFFF; b = 32'd4;  #10; check_result(32'h07FFFFFF, "ASR pos by 4");
+    shval = 32'h40000000; shamt = 5'd1;  #10; check_result(32'h20000000, "ASR pos by 1");
+    shval = 32'h7FFFFFFF; shamt = 5'd4;  #10; check_result(32'h07FFFFFF, "ASR pos by 4");
 
     // Shift by 0 is a no-op for both signed and unsigned
-    a = 32'hDEADBEEF; b = 32'd0;  #10; check_result(32'hDEADBEEF, "ASR by 0 (no-op)");
+    shval = 32'hDEADBEEF; shamt = 5'd0;  #10; check_result(32'hDEADBEEF, "ASR by 0 (no-op)");
 
     // =========================================================================
     // 10. Default / undefined opcodes
