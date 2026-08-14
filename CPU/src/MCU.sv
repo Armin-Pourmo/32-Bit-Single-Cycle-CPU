@@ -8,7 +8,9 @@ module MCU #(parameter WIDTH = 32)(
     output logic ALUSrc,
     output logic RegDst,
     output logic RegWrite,
-    output logic Jump
+    output logic Jump,
+    output logic EXT_Op,
+    output logic [3:0] ALU_Control
 
 );
 
@@ -18,8 +20,10 @@ module MCU #(parameter WIDTH = 32)(
     localparam OP_SW    = 6'b101011;
     localparam OP_BEQ   = 6'b000100;
     localparam OP_ADDI  = 6'b001000;
-    localparam OP_JUMP  = 6'b000010;
+    localparam OP_JUMP   = 6'b000010;
     localparam OP_BNE   = 6'b000101;
+    localparam OP_ANDI  = 6'b001100;
+    localparam OP_ORI   = 6'b001101;
     
     // Defaults — safe/inactive for every control signal
 always_comb begin
@@ -32,7 +36,8 @@ always_comb begin
     RegDst   = 1'b0;
     RegWrite = 1'b0;
     Jump     = 1'b0;
-
+    Ext_Op   = 1'b0;
+    ALU_Control = 4'b0000;
     case (OPCODE)
 
         OP_RTYPE: begin
@@ -72,6 +77,24 @@ always_comb begin
         OP_BNE: begin
             BranchNE = 1'b1;
             ALUOp    = 2'b01; // subtract, check zero
+        end
+
+
+
+        OP_ANDI: begin
+            ALUSrc   = 1'b1;
+            RegWrite = 1'b1;
+            ALUOp    = 2'b11; // tels ALU Decoder to leave ALU_Control as is for ANDI
+            Ext_Op   = 1'b1;
+            ALU_Control = 4'b0000; // AND operation
+        end
+
+        OP_ORI: begin
+            ALUSrc   = 1'b1;
+            RegWrite = 1'b1;
+            ALUOp    = 2'b11; // tels ALU Decoder to leave ALU_Control as is for ORI
+            Ext_Op   = 1'b1;
+            ALU_Control = 4'b0001; // OR operation
         end
 
     endcase

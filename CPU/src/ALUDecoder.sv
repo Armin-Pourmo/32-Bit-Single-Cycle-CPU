@@ -1,4 +1,5 @@
 module ALUDecoder #(parameter WIDTH = 32)(
+    input logic [3:0] ALUControl_MCU, // Original ALUControl from MCU. May or may not be changed in this module
     input logic [1:0] ALUOp,
     input logic [5:0] FUNC,
     output logic [3:0] ALUControl
@@ -34,6 +35,7 @@ always_comb begin
     case(ALUOp)
         2'b00: ALUControl = ADD; // ADD
         2'b01: ALUControl = SUB; // SUB
+        2'b11: ALUControl = ALUControl_MCU; // Use ALUControl from MCU
         2'b10: begin
             case(FUNC)
                 FUNC_SLL: ALUControl = SLL;
