@@ -1,5 +1,5 @@
 module PC_unit #(parameter WIDTH = 32)(
-    input logic clk, rst, Branch, Zero, Jump,
+    input logic clk, rst, Branch, Zero, Jump, BranchNE,
     input logic [WIDTH-1:0]PC_BRANCH, PC_PLUS, PC_JUMP, 
     output logic [WIDTH-1:0]PC_OUT  
 );
@@ -9,6 +9,10 @@ logic [WIDTH-1:0] Mux1, Mux2;
 always_comb begin : BranchorPlus
 
     if(Branch && Zero)begin
+        Mux1 = PC_BRANCH;
+    end
+
+    else if(BranchNE && !Zero)begin
         Mux1 = PC_BRANCH;
     end
 

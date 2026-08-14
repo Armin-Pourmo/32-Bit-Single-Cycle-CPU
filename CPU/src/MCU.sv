@@ -3,7 +3,7 @@ module MCU #(parameter WIDTH = 32)(
     
     output logic MemtoReg,
     output logic MemWrite,
-    output logic Branch,
+    output logic Branch,BranchNE,
     output logic [1:0] ALUOp,
     output logic ALUSrc,
     output logic RegDst,
@@ -19,12 +19,14 @@ module MCU #(parameter WIDTH = 32)(
     localparam OP_BEQ   = 6'b000100;
     localparam OP_ADDI  = 6'b001000;
     localparam OP_JUMP  = 6'b000010;
+    localparam OP_BNE   = 6'b000101;
     
     // Defaults — safe/inactive for every control signal
 always_comb begin
     MemtoReg = 1'b0;
     MemWrite = 1'b0;
     Branch   = 1'b0;
+    BranchNE = 1'b0;
     ALUOp    = 2'b00;
     ALUSrc   = 1'b0;
     RegDst   = 1'b0;
@@ -65,6 +67,11 @@ always_comb begin
 
         OP_JUMP: begin
             Jump = 1'b1;
+        end
+
+        OP_BNE: begin
+            BranchNE = 1'b1;
+            ALUOp    = 2'b01; // subtract, check zero
         end
 
     endcase

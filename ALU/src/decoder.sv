@@ -13,6 +13,7 @@ localparam SUB = 4'b0101;
 localparam SLL = 4'b0110;
 localparam SRL = 4'b0111;
 localparam SRA = 4'b1000;
+localparam SLT = 4'b1010;
 
 always_comb begin
 
@@ -56,7 +57,10 @@ always_comb begin
             arithmetic = 1'b1;
             result     = 2'b10; // SRA
         end
-
+        SLT: begin
+            sub       = 1'b1;
+            result = 2'b11; // SLT
+        end
         default: result = '0;
     endcase
 end

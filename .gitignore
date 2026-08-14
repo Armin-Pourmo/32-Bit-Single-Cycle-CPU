@@ -3,6 +3,6 @@ build/
 **/sim/
 *.vvp
 *.out
-
+.claude 
 # Waveform dumps
 *.vcd

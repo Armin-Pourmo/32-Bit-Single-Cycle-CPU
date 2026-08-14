@@ -16,6 +16,7 @@ localparam FUNC_AND = 6'b100100;
 localparam FUNC_OR  = 6'b100101;
 localparam FUNC_XOR = 6'b100110;
 localparam FUNC_NOR = 6'b100111;
+localparam FUNC_SLT = 6'b101010;
 
 //------------------ALU Control Signals-----------------
 localparam AND = 4'b0000;
@@ -27,7 +28,7 @@ localparam SUB = 4'b0101;
 localparam SLL = 4'b0110;
 localparam SRL = 4'b0111;
 localparam SRA = 4'b1000;
-
+localparam SLT = 4'b1010;
 
 always_comb begin
     case(ALUOp)
@@ -44,6 +45,7 @@ always_comb begin
                 FUNC_OR : ALUControl = OR;
                 FUNC_XOR: ALUControl = XOR;
                 FUNC_NOR: ALUControl = NOR;
+                FUNC_SLT: ALUControl = SLT;
                 default: ALUControl = 4'bxxxx; // Undefined
             endcase
         end

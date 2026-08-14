@@ -12,7 +12,7 @@ module alu #(parameter WIDTH = 32)(
 
 logic [WIDTH-1:0] result_add,result_shift,result_logic;
 logic [1:0] operation;
-logic sub,direction,arithmetic;
+logic sub,direction,arithmetic,zero_flag,sign_flag;
 
 decoder #(.WIDTH(WIDTH)) decode(
     .opcode(opcode),
@@ -28,8 +28,8 @@ add_subtract_unit #(.WIDTH(WIDTH)) ALU_ADD(
     .sum(result_add),
     .sub(sub),
     .cout(carry),
-    .zero_flag(),
-    .sign_flag(),
+    .zero_flag(zero_flag),
+    .sign_flag(sign_flag),
     .overflow_flag(overflow)
 );
 
@@ -56,6 +56,7 @@ always_comb begin: final_mux
         2'b00: result = result_add;
         2'b01: result = result_logic;
         2'b10: result = result_shift;
+        2'b11: result = {31'b0, (sign_flag ^ overflow)}; // SLT
         default: result = result_add;
     endcase
 end
