@@ -67,11 +67,15 @@ initial begin
                       // are synchronous (if(rst) inside always_ff), so
                       // reset must be held across at least one posedge.
 
-    // instructions.hex is 7 single-cycle instructions; one commits per
-    // clock edge, so 7 edges (70 time units) is enough — #200 is margin.
-    #200;
+    // instructions.hex is 23 single-cycle instructions; one commits per
+    // clock edge, so 23 edges (230 time units) is enough — #300 is margin.
+    #300;
 
     // ── Expected end state, hand-traced from instructions.hex ──────────
+    // Covers every instruction the ISA currently implements, each at least
+    // once: NOR/AND/OR/ADD/SUB/XOR/SLT/SLL/SRL/SRA (R-type), LW/SW/ADDI/
+    // ANDI/ORI/BEQ/BNE (I-type), J (J-type).
+    //
     // nor  $8,$0,$0        -> $8  = ~($0|$0)        = 0xFFFFFFFF
     // sw   $8,0($0)        -> mem[0]                = 0xFFFFFFFF
     // lw   $9,0($0)        -> $9  = mem[0]           = 0xFFFFFFFF
@@ -80,12 +84,44 @@ initial begin
     //                         next instruction
     // nor  $11,$0,$0       -> SKIPPED — $11 must stay at its reset value
     // or   $12,$8,$0       -> (branch target) $12 = $8 | $0 = 0xFFFFFFFF
+    // addi $13,$0,5        -> $13 = 0+5              = 5
+    // add  $14,$13,$13     -> $14 = 5+5               = 10
+    // sub  $15,$14,$13     -> $15 = 10-5              = 5
+    // slt  $16,$13,$14     -> $13(5) < $14(10)        -> $16 = 1
+    // xor  $17,$13,$14     -> 5 ^ 10                  = 15 (0xF)
+    // sll  $18,$13,2       -> 5 << 2                  = 20 (0x14)
+    // srl  $19,$18,2       -> 20 >> 2                 = 5
+    // sra  $20,$8,4        -> 0xFFFFFFFF >>> 4        = 0xFFFFFFFF (arithmetic: sign-fills)
+    // andi $21,$13,3       -> 5 & 3 (zero-ext imm)    = 1
+    // ori  $22,$13,8       -> 5 | 8 (zero-ext imm)    = 13 (0xD)
+    // bne  $13,$14,1       -> 5!=10, so branch IS taken, skipping the
+    //                         next instruction
+    // nor  $23,$0,$0       -> SKIPPED — $23 must stay at its reset value
+    // addi $24,$0,7        -> (branch target) $24 = 0+7 = 7
+    // j    0x58            -> unconditional jump, skipping the next
+    //                         instruction
+    // nor  $25,$0,$0       -> SKIPPED — $25 must stay at its reset value
+    // addi $26,$0,9        -> (jump target) $26 = 0+9 = 9
     check_reg(8,  32'hFFFFFFFF, "nor $8,$0,$0");
     check_mem(0,  32'hFFFFFFFF, "sw $8,0($0)");
     check_reg(9,  32'hFFFFFFFF, "lw $9,0($0)");
     check_reg(10, 32'hFFFFFFFF, "and $10,$8,$9");
     check_reg(11, 32'h00000000, "nor $11 must be skipped by beq");
     check_reg(12, 32'hFFFFFFFF, "or $12,$8,$0 (branch landed here)");
+    check_reg(13, 32'd5,        "addi $13,$0,5");
+    check_reg(14, 32'd10,       "add $14,$13,$13");
+    check_reg(15, 32'd5,        "sub $15,$14,$13");
+    check_reg(16, 32'd1,        "slt $16,$13,$14");
+    check_reg(17, 32'd15,       "xor $17,$13,$14");
+    check_reg(18, 32'd20,       "sll $18,$13,2");
+    check_reg(19, 32'd5,        "srl $19,$18,2");
+    check_reg(20, 32'hFFFFFFFF, "sra $20,$8,4");
+    check_reg(21, 32'd1,        "andi $21,$13,3");
+    check_reg(22, 32'd13,       "ori $22,$13,8");
+    check_reg(23, 32'h00000000, "nor $23 must be skipped by bne");
+    check_reg(24, 32'd7,        "addi $24,$0,7 (bne landed here)");
+    check_reg(25, 32'h00000000, "nor $25 must be skipped by j");
+    check_reg(26, 32'd9,        "addi $26,$0,9 (j landed here)");
 
     $display("──────────────────────────────────────────");
     $display("CPU testbench complete: %0d passed, %0d failed", pass_count, fail_count);

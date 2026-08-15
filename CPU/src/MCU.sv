@@ -1,5 +1,6 @@
 module MCU #(parameter WIDTH = 32)(
     input  logic [5:0] OPCODE,
+    input logic [5:0] FUNC,
     
     output logic MemtoReg,
     output logic MemWrite,
@@ -10,7 +11,8 @@ module MCU #(parameter WIDTH = 32)(
     output logic RegWrite,
     output logic Jump,
     output logic EXT_Op,
-    output logic [3:0] ALU_Control
+    output logic [3:0] ALU_Control,
+    output logic LU
 
 );
 
@@ -24,6 +26,7 @@ module MCU #(parameter WIDTH = 32)(
     localparam OP_BNE   = 6'b000101;
     localparam OP_ANDI  = 6'b001100;
     localparam OP_ORI   = 6'b001101;
+    localparam OP_LUI   = 6'b001111;
     
     // Defaults — safe/inactive for every control signal
 always_comb begin
@@ -36,14 +39,20 @@ always_comb begin
     RegDst   = 1'b0;
     RegWrite = 1'b0;
     Jump     = 1'b0;
-    Ext_Op   = 1'b0;
+    EXT_Op   = 1'b0;
     ALU_Control = 4'b0000;
     case (OPCODE)
 
         OP_RTYPE: begin
-            RegDst   = 1'b1;
-            RegWrite = 1'b1;
-            ALUOp    = 2'b10; // look at FUNC
+            if(FUNC == 6'b001000) begin // Check for JR instruction
+                RegDst   = 1'b0; // Don't write to a register for JR
+                RegWrite = 1'b0; // Don't write to a register for JR
+                ALUOp    = 2'b10; // Look at FUNC for ALU operation
+            end else begin
+                RegDst   = 1'b1;
+                RegWrite = 1'b1;
+                ALUOp    = 2'b10; // look at FUNC
+            end
         end
 
         OP_LW: begin
@@ -79,13 +88,11 @@ always_comb begin
             ALUOp    = 2'b01; // subtract, check zero
         end
 
-
-
         OP_ANDI: begin
             ALUSrc   = 1'b1;
             RegWrite = 1'b1;
             ALUOp    = 2'b11; // tels ALU Decoder to leave ALU_Control as is for ANDI
-            Ext_Op   = 1'b1;
+            EXT_Op   = 1'b1;
             ALU_Control = 4'b0000; // AND operation
         end
 
@@ -93,8 +100,13 @@ always_comb begin
             ALUSrc   = 1'b1;
             RegWrite = 1'b1;
             ALUOp    = 2'b11; // tels ALU Decoder to leave ALU_Control as is for ORI
-            Ext_Op   = 1'b1;
+            EXT_Op   = 1'b1;
             ALU_Control = 4'b0001; // OR operation
+        end
+
+        OP_LUI: begin
+            LU       = 1'b1;
+            RegWrite = 1'b1;
         end
 
     endcase

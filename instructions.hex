@@ -12,3 +12,35 @@ ac080000
 00005827
 // addr 0x18: or   $12, $8, $0        LABEL: $12 = $8 | $0
 01006025
+// addr 0x1C: addi $13, $0,  5        $13 = 0+5 = 5
+200d0005
+// addr 0x20: add  $14, $13, $13      $14 = 5+5 = 10
+01ad7020
+// addr 0x24: sub  $15, $14, $13      $15 = 10-5 = 5
+01cd7822
+// addr 0x28: slt  $16, $13, $14      $13(5) < $14(10) -> $16 = 1
+01ae802a
+// addr 0x2C: xor  $17, $13, $14      5 ^ 10 = 15 (0xF)
+01ae8826
+// addr 0x30: sll  $18, $13, 2        5 << 2 = 20 (0x14)
+000d9080
+// addr 0x34: srl  $19, $18, 2        20 >> 2 = 5
+00129882
+// addr 0x38: sra  $20, $8,  4        0xFFFFFFFF >>> 4 = 0xFFFFFFFF (sign-fill, not zero-fill)
+0008a103
+// addr 0x3C: andi $21, $13, 3        5 & 3 = 1 (zero-extended immediate)
+31b50003
+// addr 0x40: ori  $22, $13, 8        5 | 8 = 13 (0xD) (zero-extended immediate)
+35b60008
+// addr 0x44: bne  $13, $14, 1        5 != 10 -> branch taken, skip 0x48
+15ae0001
+// addr 0x48: nor  $23, $0, $0        SKIPPED by bne -- $23 must stay 0
+0000b827
+// addr 0x4C: addi $24, $0,  7        LABEL: BNE landing target -- proves skip worked
+20180007
+// addr 0x50: j    0x58                jump to 0x58, skip 0x54
+08000016
+// addr 0x54: nor  $25, $0, $0        SKIPPED by j -- $25 must stay 0
+0000c827
+// addr 0x58: addi $26, $0,  9        LABEL: J landing target -- proves jump worked
+201a0009

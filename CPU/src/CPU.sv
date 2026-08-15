@@ -37,7 +37,7 @@ logic [WIDTH-1:0] RD1,RD2,WD3,EXTENDED_IMMEDIATE;
 logic [4:0] WriteReg;
 
 //MCU signals
-logic MemtoReg,MemWrite,Branch,ALUSrc,RegDst,RegWrite,Jump,EXT_Op,BranchNE;
+logic MemtoReg,MemWrite,Branch,ALUSrc,RegDst,RegWrite,Jump,EXT_Op,BranchNE,LU,JR;
 logic [1:0] ALUOp; 
 logic [3:0] ALUControl,ALUControl_MCU; //ALUControl is the final control signal for the ALU, ALUControl_MCU is the control signal from the MCU that may be modified by the ALUDecoder
 
@@ -62,6 +62,8 @@ PC_unit #(.WIDTH(WIDTH)) PC_UNIT(
     .PC_BRANCH(PC_BRANCH),
     .PC_PLUS(PC_PLUS),
     .PC_JUMP(PC_JUMP),
+    .RD(RD1), // Pass the value of RD1 to the PC_unit for JR instruction
+    .JR(JR),
 
     .PC_OUT(PC_OUT)
 );
@@ -111,6 +113,7 @@ bit_extender #(.WIDTH(WIDTH)) BIT_EXTENDER(
 
 MCU #(.WIDTH(WIDTH)) MCU(
     .OPCODE(OPCODE),
+    .FUNC(FUNC),
 
     .MemtoReg(MemtoReg),
     .MemWrite(MemWrite),
@@ -122,14 +125,16 @@ MCU #(.WIDTH(WIDTH)) MCU(
     .RegWrite(RegWrite),
     .Jump(Jump),
     .ALU_Control(ALUControl_MCU),
-    .EXT_Op(EXT_Op)
+    .EXT_Op(EXT_Op),
+    .LU(LU)
 );
 
 ALUDecoder #(.WIDTH(WIDTH)) ALU_DECODER(
     .ALUControl_MCU(ALUControl_MCU),
     .ALUOp(ALUOp),
     .FUNC(FUNC),
-    .ALUControl(ALUControl)
+    .ALUControl(ALUControl),
+    .JR(JR) // Connect the JR output from ALUDecoder to the PC_unit
 );
 
 
@@ -196,10 +201,12 @@ data_memory #(.WIDTH(WIDTH)) DATA_MEMORY(
 );
 
 read_data_mux #(.WIDTH(WIDTH)) READ_DATA_MUX(
+    .IMM(IMMEDIATE),
     .ALU_RESULT(ALU_RESULT),
     .MEM_READ_DATA(RD_MEM),
     .MemtoReg(MemtoReg),
-    .WD3(WD3)
+    .WD3(WD3),
+    .LU(LU)
 );
 
 endmodule
