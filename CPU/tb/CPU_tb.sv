@@ -67,14 +67,14 @@ initial begin
                       // are synchronous (if(rst) inside always_ff), so
                       // reset must be held across at least one posedge.
 
-    // instructions.hex is 23 single-cycle instructions; one commits per
-    // clock edge, so 23 edges (230 time units) is enough — #300 is margin.
-    #300;
+    // instructions.hex is 29 single-cycle instructions; one commits per
+    // clock edge, so 29 edges (290 time units) is enough — #350 is margin.
+    #350;
 
     // ── Expected end state, hand-traced from instructions.hex ──────────
     // Covers every instruction the ISA currently implements, each at least
-    // once: NOR/AND/OR/ADD/SUB/XOR/SLT/SLL/SRL/SRA (R-type), LW/SW/ADDI/
-    // ANDI/ORI/BEQ/BNE (I-type), J (J-type).
+    // once: NOR/AND/OR/ADD/SUB/XOR/SLT/SLL/SRL/SRA/JR (R-type), LW/SW/ADDI/
+    // ANDI/ORI/BEQ/BNE/LUI (I-type), J/JAL (J-type).
     //
     // nor  $8,$0,$0        -> $8  = ~($0|$0)        = 0xFFFFFFFF
     // sw   $8,0($0)        -> mem[0]                = 0xFFFFFFFF
@@ -102,6 +102,17 @@ initial begin
     //                         instruction
     // nor  $25,$0,$0       -> SKIPPED — $25 must stay at its reset value
     // addi $26,$0,9        -> (jump target) $26 = 0+9 = 9
+    // lui  $27,0x1234      -> $27 = 0x1234 << 16 = 0x12340000
+    // j    0x6C             -> unconditionally skip the function body below;
+    //                          it must only ever be entered via jal
+    // (function body, reached only via jal below)
+    //   addi $29,$0,0x99   -> [FUNC] proves jal actually jumped here
+    //   jr   $31           -> return using the address jal saved in $31
+    // jal  0x64             -> $31 = PC+4 = 0x70 (return address); jump to
+    //                          the function above
+    // addi $28,$0,0x42      -> AFTER-CALL: only reached if jr correctly
+    //                          returned using $31 — proves the full
+    //                          call/return round trip works
     check_reg(8,  32'hFFFFFFFF, "nor $8,$0,$0");
     check_mem(0,  32'hFFFFFFFF, "sw $8,0($0)");
     check_reg(9,  32'hFFFFFFFF, "lw $9,0($0)");
@@ -122,6 +133,10 @@ initial begin
     check_reg(24, 32'd7,        "addi $24,$0,7 (bne landed here)");
     check_reg(25, 32'h00000000, "nor $25 must be skipped by j");
     check_reg(26, 32'd9,        "addi $26,$0,9 (j landed here)");
+    check_reg(27, 32'h12340000, "lui $27,0x1234");
+    check_reg(31, 32'h00000070, "jal $31 = return address (link write)");
+    check_reg(29, 32'h00000099, "addi $29 inside jal's target -- proves jal jumped");
+    check_reg(28, 32'h00000042, "addi $28 after jr returns -- proves call/return round trip works");
 
     $display("──────────────────────────────────────────");
     $display("CPU testbench complete: %0d passed, %0d failed", pass_count, fail_count);

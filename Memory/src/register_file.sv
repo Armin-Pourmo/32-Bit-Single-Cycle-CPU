@@ -14,8 +14,7 @@ module register_file #(parameter N = 32, WIDTH = 32)(
             end
         end
         
-        else
-        if (enable && A3 != 0)
+        else if (enable && A3 != 0)
             mem[A3] <= WD3;
     
     end

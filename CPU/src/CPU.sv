@@ -37,7 +37,7 @@ logic [WIDTH-1:0] RD1,RD2,WD3,EXTENDED_IMMEDIATE;
 logic [4:0] WriteReg;
 
 //MCU signals
-logic MemtoReg,MemWrite,Branch,ALUSrc,RegDst,RegWrite,Jump,EXT_Op,BranchNE,LU,JR;
+logic MemtoReg,MemWrite,Branch,ALUSrc,RegDst,RegWrite,Jump,EXT_Op,BranchNE,LU,JR,JAL;
 logic [1:0] ALUOp; 
 logic [3:0] ALUControl,ALUControl_MCU; //ALUControl is the final control signal for the ALU, ALUControl_MCU is the control signal from the MCU that may be modified by the ALUDecoder
 
@@ -126,7 +126,8 @@ MCU #(.WIDTH(WIDTH)) MCU(
     .Jump(Jump),
     .ALU_Control(ALUControl_MCU),
     .EXT_Op(EXT_Op),
-    .LU(LU)
+    .LU(LU),
+    .JAL(JAL)
 );
 
 ALUDecoder #(.WIDTH(WIDTH)) ALU_DECODER(
@@ -160,7 +161,8 @@ MCU_mux #(.WIDTH(WIDTH)) MCU_MUX(
     .RegDst(RegDst),
     .RT(RT),
     .RD(RD),
-    .A3(WriteReg)
+    .A3(WriteReg),
+    .JAL(JAL)
 );
 
 //-----------ALU----------------
@@ -206,7 +208,9 @@ read_data_mux #(.WIDTH(WIDTH)) READ_DATA_MUX(
     .MEM_READ_DATA(RD_MEM),
     .MemtoReg(MemtoReg),
     .WD3(WD3),
-    .LU(LU)
+    .LU(LU),
+    .PC_PLUS(PC_PLUS),
+    .JAL(JAL)
 );
 
 endmodule

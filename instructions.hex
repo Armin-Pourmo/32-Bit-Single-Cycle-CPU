@@ -44,3 +44,15 @@ ac080000
 0000c827
 // addr 0x58: addi $26, $0,  9        LABEL: J landing target -- proves jump worked
 201a0009
+// addr 0x5C: lui  $27, 0x1234        $27 = 0x1234 << 16 = 0x12340000
+3c1b1234
+// addr 0x60: j    0x6C                skip the function body below (only jal may enter it)
+0800001b
+// addr 0x64: addi $29, $0, 0x99      LABEL (function body): [FUNC] only reached via jal -- proves jal jumped
+201d0099
+// addr 0x68: jr   $31                [FUNC] return using the address jal saved in $31
+03e00008
+// addr 0x6C: jal  0x64                $31 = PC+4 = 0x70; jump to function at 0x64
+0c000019
+// addr 0x70: addi $28, $0, 0x42      LABEL: AFTER-CALL -- only reached if jr returned correctly
+201c0042

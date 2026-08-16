@@ -12,7 +12,8 @@ module MCU #(parameter WIDTH = 32)(
     output logic Jump,
     output logic EXT_Op,
     output logic [3:0] ALU_Control,
-    output logic LU
+    output logic LU,
+    output logic JAL
 
 );
 
@@ -27,6 +28,7 @@ module MCU #(parameter WIDTH = 32)(
     localparam OP_ANDI  = 6'b001100;
     localparam OP_ORI   = 6'b001101;
     localparam OP_LUI   = 6'b001111;
+    localparam OP_JAL   = 6'b000011;
     
     // Defaults — safe/inactive for every control signal
 always_comb begin
@@ -40,7 +42,10 @@ always_comb begin
     RegWrite = 1'b0;
     Jump     = 1'b0;
     EXT_Op   = 1'b0;
+    JAL      = 1'b0;
     ALU_Control = 4'b0000;
+    LU      = 1'b0;
+
     case (OPCODE)
 
         OP_RTYPE: begin
@@ -107,6 +112,12 @@ always_comb begin
         OP_LUI: begin
             LU       = 1'b1;
             RegWrite = 1'b1;
+        end
+
+        OP_JAL: begin
+            Jump     = 1'b1;
+            JAL      = 1'b1;
+            RegWrite = 1'b1; // Write to $ra (register 31)
         end
 
     endcase
