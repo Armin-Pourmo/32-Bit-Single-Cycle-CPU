@@ -15,8 +15,6 @@ CPU testbench complete: 32 passed, 0 failed
 ALL TESTS PASSED
 ```
 
-- **Synthesis-checked, not timed.** A generic Yosys synthesis run (`synth`, no target FPGA/ASIC device) confirms the design is clean: zero latches inferred in any process, and it maps to 6,005 gate-level cells with exactly 1,024 flip-flops — 992 for the register file plus 32 for the PC — excluding the 64K-byte data memory, which is blackboxed for this pass since real hardware would put it in an SRAM/BRAM macro, not gates. Notably, that's 992 flip-flops for 31 registers, not 32 × 32: synthesis eliminates storage for `$0` entirely, since it's never written and always read as a hardwired zero — independent confirmation the `$0` design holds up post-synthesis, not just in simulation. No place-and-route or timing closure has been run against a real target yet, so clock frequency is still unconfirmed.
-- **Silent address truncation.** That same synthesis run flags that `ALU_RESULT` (32 bits) is implicitly truncated to `data_memory`'s 16-bit address port. Harmless today since the memory is exactly 64K (2¹⁶) entries deep, but it's an implicit width mismatch in the RTL rather than an explicit `[15:0]` slice, and would silently drop address bits if the memory were ever resized without updating the port to match.
 
 Yosys can also draw what it actually synthesized. Here's `full_adder` — the literal primitive the 32-bit ripple-carry adder is built from — mapped to real gates by ABC (`yosys -p "synth -top CPU; show full_adder"`, rendered with Graphviz):
 
