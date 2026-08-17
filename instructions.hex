@@ -56,3 +56,33 @@ ac080000
 0c000019
 // addr 0x70: addi $28, $0, 0x42      LABEL: AFTER-CALL -- only reached if jr returned correctly
 201c0042
+// ── Coverage extension below: branch-not-taken, shamt edges, negative
+// immediates, negative memory offsets, and an unimplemented opcode ──
+// addr 0x74: beq  $13, $14, 1        5 != 10 -> branch NOT taken, falls through to 0x78
+11ae0001
+// addr 0x78: sll  $1,  $13, 0        5 << 0 = 5 (shamt=0 identity) -- also proves the beq above fell through
+000d0800
+// addr 0x7C: bne  $8,  $9,  1        0xFFFFFFFF == 0xFFFFFFFF -> branch NOT taken, falls through to 0x80
+15090001
+// addr 0x80: srl  $2,  $13, 0        5 >> 0 = 5 (shamt=0 identity) -- also proves the bne above fell through
+000d1002
+// addr 0x84: [reserved opcode 111111, not in the ISA]   phantom rd field = $8 (adversarial: would corrupt
+//            $8 if RegWrite were ever wrongly asserted for an unrecognized opcode); MCU's case has no
+//            default arm, so every control signal stays at its pre-case-assigned default -- this must
+//            behave as an inert NOP and fall through to 0x88
+fc004000
+// addr 0x88: sra  $3,  $13, 0        5 >>> 0 = 5 (shamt=0 identity) -- also proves the reserved opcode above fell through
+000d1803
+// addr 0x8C: sll  $4,  $8,  31       0xFFFFFFFF << 31 = 0x80000000 (shamt=31 edge)
+000827c0
+// addr 0x90: srl  $5,  $8,  31       0xFFFFFFFF >> 31 = 0x00000001 (shamt=31 edge, logical: zero-fill)
+00082fc2
+// addr 0x94: sra  $6,  $8,  31       0xFFFFFFFF >>> 31 = 0xFFFFFFFF (shamt=31 edge, arithmetic: sign-fill)
+000837c3
+// addr 0x98: addi $7,  $0,  -1       sign-extended negative immediate -> $7 = 0xFFFFFFFF (not 0x0000FFFF)
+2007ffff
+// addr 0x9C: sw   $13, -4($18)       $18=20, so address = 20 + (-4) = 16; store $13(5) there
+ae4dfffc
+// addr 0xA0: lw   $30, -4($18)       load back from address 16 -> $30 = 5, proving the negative-offset
+//            address math round-trips correctly
+8e5efffc

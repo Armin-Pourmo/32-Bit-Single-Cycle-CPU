@@ -67,9 +67,9 @@ initial begin
                       // are synchronous (if(rst) inside always_ff), so
                       // reset must be held across at least one posedge.
 
-    // instructions.hex is 29 single-cycle instructions; one commits per
-    // clock edge, so 29 edges (290 time units) is enough — #350 is margin.
-    #350;
+    // instructions.hex is 41 single-cycle instructions; one commits per
+    // clock edge, so 41 edges (410 time units) is enough — #500 is margin.
+    #500;
 
     // ── Expected end state, hand-traced from instructions.hex ──────────
     // Covers every instruction the ISA currently implements, each at least
@@ -113,6 +113,30 @@ initial begin
     // addi $28,$0,0x42      -> AFTER-CALL: only reached if jr correctly
     //                          returned using $31 — proves the full
     //                          call/return round trip works
+    //
+    // ── Coverage extension: everything the first pass of this testbench
+    // left unexercised (see README "Verification & known limitations").
+    // Each not-taken branch and the reserved opcode are proven by folding
+    // their "did control flow actually fall through?" check into the very
+    // next instruction's register check — no dedicated register spent.
+    //
+    // beq  $13,$14,1        -> 5!=10, so branch is NOT taken (falls through)
+    // sll  $1,$13,0         -> 5<<0 = 5; also proves the beq above fell through
+    // bne  $8,$9,1          -> $8==$9, so branch is NOT taken (falls through)
+    // srl  $2,$13,0         -> 5>>0 = 5; also proves the bne above fell through
+    // [reserved opcode]     -> not in the ISA; MCU's case has no default arm,
+    //                          so every control signal stays at its safe/inactive
+    //                          default. Its phantom rd field points at $8, so if
+    //                          RegWrite were ever wrongly asserted here, $8's
+    //                          check below would fail.
+    // sra  $3,$13,0         -> 5>>>0 = 5; also proves the reserved opcode fell through
+    // sll  $4,$8,31         -> 0xFFFFFFFF<<31  = 0x80000000 (shamt=31 edge)
+    // srl  $5,$8,31         -> 0xFFFFFFFF>>31  = 0x00000001 (shamt=31 edge, zero-fill)
+    // sra  $6,$8,31         -> 0xFFFFFFFF>>>31 = 0xFFFFFFFF (shamt=31 edge, sign-fill)
+    // addi $7,$0,-1         -> sign-extended -1 = 0xFFFFFFFF, not 0x0000FFFF
+    // sw   $13,-4($18)      -> $18=20, address = 16; store $13(5) there
+    // lw   $30,-4($18)      -> load back from address 16 -> $30 = 5,
+    //                          proving negative-offset address math round-trips
     check_reg(8,  32'hFFFFFFFF, "nor $8,$0,$0");
     check_mem(0,  32'hFFFFFFFF, "sw $8,0($0)");
     check_reg(9,  32'hFFFFFFFF, "lw $9,0($0)");
@@ -137,6 +161,15 @@ initial begin
     check_reg(31, 32'h00000070, "jal $31 = return address (link write)");
     check_reg(29, 32'h00000099, "addi $29 inside jal's target -- proves jal jumped");
     check_reg(28, 32'h00000042, "addi $28 after jr returns -- proves call/return round trip works");
+
+    check_reg(1,  32'd5,        "sll $1,$13,0 (shamt=0) -- also proves beq not-taken fell through");
+    check_reg(2,  32'd5,        "srl $2,$13,0 (shamt=0) -- also proves bne not-taken fell through");
+    check_reg(3,  32'd5,        "sra $3,$13,0 (shamt=0) -- also proves reserved opcode fell through");
+    check_reg(4,  32'h80000000, "sll $4,$8,31 (shamt=31 edge)");
+    check_reg(5,  32'h00000001, "srl $5,$8,31 (shamt=31 edge, zero-fill)");
+    check_reg(6,  32'hFFFFFFFF, "sra $6,$8,31 (shamt=31 edge, sign-fill)");
+    check_reg(7,  32'hFFFFFFFF, "addi $7,$0,-1 (negative immediate sign-extends)");
+    check_reg(30, 32'd5,        "lw $30,-4($18) (negative offset round-trip)");
 
     $display("──────────────────────────────────────────");
     $display("CPU testbench complete: %0d passed, %0d failed", pass_count, fail_count);

@@ -196,7 +196,7 @@ alu_mux #(.WIDTH(WIDTH)) ALU_MUX(
 data_memory #(.WIDTH(WIDTH)) DATA_MEMORY(
     .clk(clk),
     .rst(reset),
-    .A(ALU_RESULT),
+    .A(ALU_RESULT[15:0]),
     .WD(RD2),
     .WE(MemWrite),
     .RD(RD_MEM)

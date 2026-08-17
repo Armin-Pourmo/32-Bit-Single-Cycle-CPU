@@ -1,19 +1,28 @@
 # Single-Cycle MIPS-Style CPU
 
-A 32-bit, single-cycle MIPS-style CPU implemented from scratch in SystemVerilog — every instruction fetches, decodes, executes, accesses memory, and writes back within one clock edge. No pipelining, no hazard logic; the goal was to build and verify a complete, correct datapath and control unit from the gate level up.
+A 32-bit, single-cycle MIPS-style CPU implemented in SystemVerilog — every instruction fetches, decodes, executes, accesses memory, and writes back within one clock cycle. No pipelining, no hazard logic. The architecture follows the single-cycle MIPS datapath from Harris & Harris's *Digital Design and Computer Architecture*; this is my from-scratch SystemVerilog implementation of it, extended with additional instructions and my own ALU (see [Design origins & disclosures](#design-origins--disclosures) for the full breakdown of what's original vs. adapted).
 
 ![CPU Datapath](docs/MIPS%20CPU%2020206.svg)
 
 <sub>*Diagram simplified for readability — a majority of the MCU and ALU Decoder control signals are omitted. See `CPU/src/MCU.sv` and `CPU/src/ALUDecoder.sv` for the complete control logic.*</sub>
 
-## Status
+## Verification & known limitations
 
-The full instruction set below is implemented and passing. The top-level testbench (`CPU/tb/CPU_tb.sv`) runs a hand-written program through the CPU and checks 24 register/memory assertions, including a full `jal`/`jr` call-and-return round trip:
+The top-level testbench (`CPU/tb/CPU_tb.sv`) is a hand-written integration program exercising every implemented instruction, with 32 assertions on final register/memory state (30 register checks + 2 memory checks), including a full `jal`/`jr` call-and-return round trip:
 
 ```
-CPU testbench complete: 24 passed, 0 failed
+CPU testbench complete: 32 passed, 0 failed
 ALL TESTS PASSED
 ```
+
+- **Synthesis-checked, not timed.** A generic Yosys synthesis run (`synth`, no target FPGA/ASIC device) confirms the design is clean: zero latches inferred in any process, and it maps to 6,005 gate-level cells with exactly 1,024 flip-flops — 992 for the register file plus 32 for the PC — excluding the 64K-byte data memory, which is blackboxed for this pass since real hardware would put it in an SRAM/BRAM macro, not gates. Notably, that's 992 flip-flops for 31 registers, not 32 × 32: synthesis eliminates storage for `$0` entirely, since it's never written and always read as a hardwired zero — independent confirmation the `$0` design holds up post-synthesis, not just in simulation. No place-and-route or timing closure has been run against a real target yet, so clock frequency is still unconfirmed.
+- **Silent address truncation.** That same synthesis run flags that `ALU_RESULT` (32 bits) is implicitly truncated to `data_memory`'s 16-bit address port. Harmless today since the memory is exactly 64K (2¹⁶) entries deep, but it's an implicit width mismatch in the RTL rather than an explicit `[15:0]` slice, and would silently drop address bits if the memory were ever resized without updating the port to match.
+
+Yosys can also draw what it actually synthesized. Here's `full_adder` — the literal primitive the 32-bit ripple-carry adder is built from — mapped to real gates by ABC (`yosys -p "synth -top CPU; show full_adder"`, rendered with Graphviz):
+
+![full_adder gate-level schematic](docs/yosys_full_adder.svg)
+
+The same command against the whole `CPU` top level produces a real schematic too, but at 452 cells across 14 submodules it's ~103"×25" as laid out — legible when you zoom into a vector viewer, useless shrunk to fit a README. It's in [`docs/yosys_cpu_schematic.svg`](docs/yosys_cpu_schematic.svg) for anyone who wants to open it directly and pan around.
 
 ## Instructions implemented
 
@@ -64,22 +73,30 @@ The CPU is built as independently-verified modules wired together in `CPU/src/CP
 
 Control flow: the **Control Unit (MCU)** decodes `opcode`/`funct` into the control word (`RegDst`, `ALUSrc`, `MemToReg`, `RegWrite`, `MemWrite`, `Branch`, `BranchNE`, `Jump`, `ALUOp`, `ExtOp`, `LU`, `JAL`) that drives every mux and enable pin in the datapath. Two feedback loops close the datapath: the **next-PC mux** (selecting between `PC+4`, branch target, jump target, and the JR register value) feeds back into the PC register, and the **write-back mux** (selecting between ALU result, memory read data, `{imm,16'b0}` for LUI, and `PC+4` for JAL) feeds back into the register file. See the diagram above for the full wiring.
 
+
 ## Running the tests
 
 Requires [Icarus Verilog](https://steveicarus.github.io/iverilog/).
 
 ```bash
+# build/ is gitignored, so create it on a fresh clone
+mkdir -p build
+
 # Top-level CPU testbench
 iverilog -g2012 -o build/cpu_tb.out -s CPU_tb $(cat sources.f)
 vvp build/cpu_tb.out
 ```
 
+`sources.f` is just a plain newline-separated list of every RTL source file, in dependency order, passed to `iverilog -f sources.f`; it's the closest thing this repo has to a build file.
+
 Individual module testbenches live alongside their sources in each `tb/` directory (e.g. `ALU/tb/alu_tb.sv`, `Memory/tb/bit_extender_tb.sv`) and can be compiled/run the same way against just their relevant source files.
 
-`instructions.hex` is the program image loaded by `instruction_memory` — edit it (or regenerate it from assembly) to run a different program through the CPU.
+`instructions.hex` is the program image loaded by `instruction_memory`, hand-assembled machine code with an inline `//` comment above each word documenting its address, mnemonic, and semantics. **Known gap:** there's no assembler in this repo yet — changing the program currently means hand-encoding new instructions the same way.
 
 ## Design origins & disclosures
 
 * **Textbook foundation.** The datapath and control scheme are based on the single-cycle MIPS processor in *Digital Design and Computer Architecture* by Sarah L. Harris and David Harris (Chapter 7, Section 7.3, p. 383). That base design covers `add`, `sub`, `and`, `or`, `slt`, `lw`, `sw`, `beq`, `addi`, and `j`. Starting from that architecture, I reimplemented it from scratch in SystemVerilog and extended it with instructions beyond the textbook's base subset: `xor`, `nor`, `sll`, `srl`, `sra`, `jr` (R-type), `andi`, `ori`, `lui` (I-type), `bne` (branch), and `jal` (jump-and-link).
-* **ALU reuse.** The ALU (`ALU/src/`) is carried over from an earlier standalone ALU project of mine, with a handful of ports added (shift amount/shift value, additional flag outputs) to integrate it into this CPU.
-* **AI assistance.** Claude was used heavily to help verify the design's correctness — writing/checking testbenches, tracing control logic, and debugging — but the substantial majority (~90%) of the actual RTL was written by hand.
+
+* **ALU reuse.** The ALU (`ALU/src/`) is carried over from an earlier standalone ALU project of mine, with a handful of ports added (shift amount/shift value, additional flag outputs) to integrate it into this CPU. Within it, the adder (`add_subtract_unit.sv`) is  gate-level — a ripple-carry chain built from individually-instantiated `full_adder` primitives, with two's-complement subtraction via a bitwise B-invert and carry-in — while the logic unit, shifter, and decoders are behavioral RTL (`&`/`|`/`^`, shift operators, `case` statements), not gate-level.
+
+* **AI assistance.** Claude was used to help verify the design's correctness — writing/checking testbenches, tracing control logic, and debugging — but the substantial majority (~90%) of the actual RTL was written by hand. The read me was done courtesy of Claude as well.
