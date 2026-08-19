@@ -97,7 +97,7 @@ Individual module testbenches live alongside their sources in each `tb/` directo
 
 * **ALU reuse.** The ALU (`ALU/src/`) is carried over from an earlier standalone ALU project of mine, with a handful of ports added (shift amount/shift value, additional flag outputs) to integrate it into this CPU. Within it, the adder (`add_subtract_unit.sv`) is  gate-level — a ripple-carry chain built from individually-instantiated `full_adder` primitives, with two's-complement subtraction via a bitwise B-invert and carry-in — while the logic unit, shifter, and decoders are behavioral RTL (`&`/`|`/`^`, shift operators, `case` statements), not gate-level.
 
-* **AI assistance.** Claude was used to help verify the design's correctness — writing/checking testbenches, tracing control logic, and debugging — but the substantial majority (~90%) of the actual RTL was written by hand. The read me was done courtesy of Claude as well.
+* **AI assistance.** Claude was used to help verify the design's correctness — writing/checking testbenches, tracing control logic, and debugging — but the substantial majority of the actual RTL design and code was done fully by me. The read me was formatted courtesy of Claude as well.
 
 ## For fun
 
